@@ -11,18 +11,36 @@ const SeasonsBar = require('./SeasonsBar');
 const { default: EpisodePicker } = require('../EpisodePicker');
 const styles = require('./styles');
 
+/**
+ * Displays a list of videos for a meta item with season selection, search, and watch status management.
+ * Handles loading states, empty states, and provides notifications toggle for library items.
+ * @returns {React.Element} The rendered videos list component
+ */
 const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, toggleNotifications }) => {
     const { core } = useServices();
     const profile = useProfile();
+    
+    /**
+     * Determines if the notifications toggle should be shown based on library status and video availability.
+     */
     const showNotificationsToggle = React.useMemo(() => {
         return metaItem?.content?.content?.inLibrary && metaItem?.content?.content?.videos?.length;
     }, [metaItem]);
+    
+    /**
+     * Extracts videos from metaItem when content is ready, returns empty array otherwise.
+     */
     const videos = React.useMemo(() => {
         return metaItem && metaItem.content.type === 'Ready' ?
             metaItem.content.content.videos
             :
             [];
     }, [metaItem]);
+    
+    /**
+     * Extracts unique season numbers from videos, filters out invalid values, and sorts them in ascending order.
+     * Null or non-numeric seasons are excluded from the result.
+     */
     const seasons = React.useMemo(() => {
         return videos
             .map(({ season }) => season)
@@ -34,6 +52,15 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
             })
             .sort((a, b) => (a || Number.MAX_SAFE_INTEGER) - (b || Number.MAX_SAFE_INTEGER));
     }, [videos]);
+    
+    /**
+     * Determines which season to display based on the following priority:
+     * 1. The season prop if it exists in available seasons
+     * 2. The season of the currently watched video from library item
+     * 3. The first non-special season (season !== 0)
+     * 4. The first available season
+     * 5. null if no seasons exist
+     */
     const selectedSeason = React.useMemo(() => {
         if (seasons.includes(season)) {
             return season;
@@ -56,6 +83,11 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
 
         return null;
     }, [seasons, season, videos, libraryItem]);
+    
+    /**
+     * Filters videos for the selected season and sorts them by episode number in ascending order.
+     * If no season is selected, returns all videos.
+     */
     const videosForSeason = React.useMemo(() => {
         return videos
             .filter((video) => {
@@ -66,15 +98,27 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
             });
     }, [videos, selectedSeason]);
 
+    /**
+     * Checks if all videos in the current season have been watched.
+     */
     const seasonWatched = React.useMemo(() => {
         return videosForSeason.every((video) => video.watched);
     }, [videosForSeason]);
 
     const [search, setSearch] = React.useState('');
+    
+    /**
+     * Updates the search state with the current input value.
+     */
     const searchInputOnChange = React.useCallback((event) => {
         setSearch(event.currentTarget.value);
     }, []);
 
+    /**
+     * Dispatches an action to toggle the watched status of a video.
+     * @param {Object} video - The video object to mark as watched/unwatched
+     * @param {boolean} watched - The current watched status of the video
+     */
     const onMarkVideoAsWatched = (video, watched) => {
         core.transport.dispatch({
             action: 'MetaDetails',
@@ -85,6 +129,11 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
         });
     };
 
+    /**
+     * Dispatches an action to toggle the watched status of all videos in a season.
+     * @param {number} season - The season number to mark as watched/unwatched
+     * @param {boolean} watched - The current watched status of the season
+     */
     const onMarkSeasonAsWatched = (season, watched) => {
         core.transport.dispatch({
             action: 'MetaDetails',
@@ -95,6 +144,10 @@ const VideosList = ({ className, metaItem, libraryItem, season, seasonOnSelect, 
         });
     };
 
+    /**
+     * Triggers season selection when a value is provided from the episode picker.
+     * @param {number} value - The season number to select
+     */
     const onSeasonSearch = (value) => {
         if (value) {
             seasonOnSelect({
