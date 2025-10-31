@@ -1,8 +1,8 @@
 name: Documentation Request
 description: Request new documentation or improvements to existing docs
 title: "[docs]: "
-# assignees:
-#   - askmanu
+assignees:
+  - askmanu
 body:
   - type: markdown
     attributes:
